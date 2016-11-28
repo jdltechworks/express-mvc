@@ -1,5 +1,5 @@
 var express = require('express');
-var getConfig = require('include-all');
+var requireAll = require('include-all');
 var path = require('path');
 
 var app = express();
@@ -8,7 +8,7 @@ var app = express();
 global._ = require('lodash');
 
 
-var services = getConfig({
+var services = requireAll({
   dirname: path.join(__dirname, 'api/services'),
   filter : /(.+)\.js$/,
 });
@@ -23,24 +23,21 @@ _.map(services, function(value, key) {
   global[key] = value;
 });
 
-
-
-var config = getConfig({
+var config = requireAll({
   dirname: path.join(__dirname, 'config'),
   filter : /(.+)\.js$/,
 });
 
 
-var customMiddlewares = getConfig({
+var customMiddlewares = requireAll({
   dirname: path.join(__dirname, 'middlewares/custom'),
   filter : /(.+)\.js$/,
 });
 
-var middlewares = getConfig({
+var middlewares = requireAll({
   dirname: path.join(__dirname, 'middlewares/lib'),
   filter : /(.+)\.js$/,
 });
-
 
 //view engine
 
@@ -51,10 +48,20 @@ app.set('views', '../views');
 
 app.set(_.keys(viewEngine), view);
 
-
+var _middlewares = [];
 middlewares = _.toArray(middlewares);
 
-app.use(middlewares);
+_.each(middlewares, function(middleware, key) {
+ if( _.isPlainObject(middleware)) {
+    _.map(middleware, (mid, key) => {
+      _middlewares.push(mid);
+    });
+ } else {
+    _middlewares.push(middleware);
+ }
+});
+
+app.use(_middlewares);
 
 
 customMiddlewares = _.toArray(customMiddlewares);
